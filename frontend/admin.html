@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Multiple AI — Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d1120;
+      --surface: #161d30;
+      --surface-2: #1e2840;
+      --surface-3: #263050;
+      --border: #2a3858;
+      --border-2: #374a6e;
+      --text: #f4f7ff;
+      --text-2: #c2d4f0;
+      --text-3: #96aed4;
+      --accent: #7c7ff5;
+      --accent-glow: rgba(124,127,245,.3);
+      --accent-2: #34e0ff;
+      --winner: #1ed98f;
+      --error: #f55f5f;
+      --warn: #fbbf24;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,.45);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+      font-size: 14px; line-height: 1.6; min-height: 100vh;
+    }
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 70% -10%, rgba(124,127,245,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at -10% 80%, rgba(52,224,255,.10) 0%, transparent 60%);
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; padding: 32px 20px 80px; }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; margin-bottom: 32px;
+      padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+    .brand-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+    }
+    .brand-name { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+    .brand-tag {
+      font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+      background: rgba(99,102,241,.15); color: #a5b4fc;
+      border: 1px solid rgba(99,102,241,.3); padding: 2px 8px; border-radius: 999px;
+    }
+    .header-right { display: flex; gap: 8px; }
+    .btn-ghost {
+      font-size: 12px; color: var(--text-3); cursor: pointer;
+      padding: 6px 14px; border: 1px solid var(--border);
+      border-radius: 999px; background: var(--surface);
+      text-decoration: none; font-family: inherit;
+      transition: color .15s, border-color .15s;
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--border-2); }
+
+    /* ── Login ── */
+    .login-wrap {
+      max-width: 400px; margin: 80px auto 0;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow);
+    }
+    .login-wrap h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .login-wrap p { font-size: 13px; color: var(--text-2); margin-bottom: 24px; }
+    label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 6px; font-weight: 500; }
+    input[type="password"], input[type="text"], select {
+      width: 100%; background: var(--surface-2); color: var(--text);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 10px 12px; font-size: 14px; font-family: inherit;
+      outline: none; transition: border-color .15s, box-shadow .15s;
+      margin-bottom: 16px;
+    }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .btn-primary {
+      width: 100%; background: linear-gradient(135deg, var(--accent), #818cf8);
+      color: #fff; border: none; padding: 11px 20px;
+      border-radius: var(--radius-sm); font-weight: 600; font-size: 14px;
+      cursor: pointer; box-shadow: 0 2px 12px var(--accent-glow); transition: filter .15s;
+    }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+
+    /* ── Dashboard layout ── */
+    .section-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--text-3); font-weight: 600; margin-bottom: 12px;
+    }
+    .dash-section { margin-bottom: 32px; }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+    }
+
+    /* ── Provider cards ── */
+    .provider-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+    .prov-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px;
+    }
+    .prov-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .prov-name { font-weight: 700; font-size: 15px; }
+    .prov-header-right { display: flex; align-items: center; gap: 10px; }
+    .status-dot {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em;
+      padding: 3px 10px; border-radius: 999px;
+    }
+    .status-dot.ok  { background: rgba(16,185,129,.12); color: var(--winner); border: 1px solid rgba(16,185,129,.25); }
+    .status-dot.off { background: rgba(239,68,68,.1);   color: #f87171;       border: 1px solid rgba(239,68,68,.2); }
+    .prov-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .prov-row:last-child { border-bottom: none; }
+    .prov-label { color: var(--text-2); }
+    .prov-val { color: var(--text); font-family: ui-monospace, monospace; font-size: 12px; }
+
+    /* Toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 6px; }
+    .toggle-label { font-size: 11px; color: var(--text-3); }
+    .toggle { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: var(--surface-3); border: 1px solid var(--border-2);
+      border-radius: 999px; transition: background .2s, border-color .2s;
+    }
+    .toggle-slider::before {
+      content: ""; position: absolute;
+      height: 14px; width: 14px; left: 3px; bottom: 3px;
+      background: var(--text-3); border-radius: 50%; transition: .2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--winner); border-color: var(--winner); }
+    .toggle input:checked + .toggle-slider::before { background: #fff; transform: translateX(16px); }
+    .toggle input:disabled + .toggle-slider { opacity: .4; cursor: not-allowed; }
+
+    /* ── Judge selector ── */
+    .judge-row { display: flex; gap: 10px; align-items: center; }
+    .judge-row select { margin-bottom: 0; flex: 1; max-width: 220px; }
+    .btn-save {
+      background: var(--accent); color: #fff; border: none;
+      padding: 10px 18px; border-radius: var(--radius-sm);
+      font-weight: 600; font-size: 13px; cursor: pointer; transition: filter .15s;
+    }
+    .btn-save:hover { filter: brightness(1.1); }
+    .btn-save:disabled { opacity: .5; cursor: not-allowed; }
+    .judge-status { font-size: 12px; color: var(--text-3); }
+
+    /* ── Token totals ── */
+    .totals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .total-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+    }
+    .total-name { font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+    .total-stats { display: flex; gap: 18px; flex-wrap: wrap; }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stat-val { font-size: 20px; font-weight: 700; color: var(--accent-2); font-variant-numeric: tabular-nums; }
+    .stat-lbl { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; }
+    .err-val { color: var(--error); }
+
+    /* ── Chart ── */
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .chart-card canvas { max-height: 220px; }
+
+    /* ── Change password ── */
+    .pw-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .pw-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end; }
+    .pw-form input { margin-bottom: 0; }
+    @media (max-width: 700px) { .pw-form { grid-template-columns: 1fr; } }
+    .pw-form label { margin-bottom: 4px; }
+    .field { display: flex; flex-direction: column; }
+    .btn-change {
+      background: var(--surface-2); border: 1px solid var(--border-2);
+      color: var(--text-2); padding: 10px 16px; border-radius: var(--radius-sm);
+      font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap;
+      transition: color .15s, border-color .15s; font-family: inherit;
+    }
+    .btn-change:hover { color: var(--text); border-color: var(--accent); }
+    .btn-change:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); }
+    thead th {
+      text-align: left; padding: 10px 14px;
+      background: var(--surface-2); border-bottom: 1px solid var(--border);
+      color: var(--text-3); font-size: 11px; text-transform: uppercase;
+      letter-spacing: .08em; font-weight: 600;
+    }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--surface-2); }
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+    }
+    .pill-ask   { background: var(--surface-3); color: var(--text-2); border: 1px solid var(--border); }
+    .pill-judge { background: rgba(99,102,241,.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,.3); }
+    .pill-ok    { background: rgba(16,185,129,.1); color: var(--winner); border: 1px solid rgba(16,185,129,.25); }
+    .pill-err   { background: rgba(239,68,68,.1); color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+    .mono { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-2); }
+
+    .btn-sm {
+      background: none; border: 1px solid var(--border); color: var(--text-2);
+      padding: 5px 12px; border-radius: var(--radius-sm); font-size: 12px;
+      cursor: pointer; transition: color .15s, border-color .15s; font-family: inherit;
+    }
+    .btn-sm:hover { color: var(--text); border-color: var(--border-2); }
+    .btn-sm.danger:hover { color: #f87171; border-color: rgba(239,68,68,.4); }
+
+    /* ── Toast ── */
+    .toast {
+      margin-top: 10px; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px;
+      background: rgba(239,68,68,.1); color: #fca5a5; border: 1px solid rgba(239,68,68,.25);
+    }
+    .toast.ok { background: rgba(16,185,129,.08); color: #6ee7b7; border-color: rgba(16,185,129,.25); }
+
+    /* ── Disabled notice ── */
+    .notice {
+      background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25);
+      border-radius: var(--radius); padding: 24px; color: #fde68a;
+    }
+    .notice h3 { font-size: 15px; margin-bottom: 6px; }
+    .notice code { background: var(--surface-3); padding: 2px 6px; border-radius: 4px; font-family: ui-monospace, monospace; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a class="brand" href="/">
+        <div class="brand-icon">✦</div>
+        <div class="brand-name">Multiple AI</div>
+      </a>
+      <span class="brand-tag">Admin</span>
+    </div>
+    <div class="header-right" id="header-right">
+      <a class="btn-ghost" href="/">← Back to app</a>
+    </div>
+  </header>
+
+  <!-- Login -->
+  <div id="login" class="login-wrap" hidden>
+    <h2>Admin sign in</h2>
+    <p>Enter your admin password to access the dashboard.</p>
+    <label for="pw">Password</label>
+    <input id="pw" type="password" placeholder="••••••••" autocomplete="current-password" />
+    <button class="btn-primary" id="login-btn">Sign in</button>
+    <div id="login-toast"></div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dash" hidden>
+
+    <!-- Providers -->
+    <div class="dash-section">
+      <div class="section-title">Providers</div>
+      <div class="provider-grid" id="providers-grid"></div>
+      <div id="toggle-toast"></div>
+    </div>
+
+    <!-- Judge -->
+    <div class="dash-section">
+      <div class="section-title">Judge Provider</div>
+      <div class="judge-row">
+        <select id="judge-select"></select>
+        <button class="btn-save" id="judge-save">Save</button>
+        <span class="judge-status" id="judge-status"></span>
+      </div>
+      <div id="judge-toast"></div>
+    </div>
+
+    <!-- Token usage -->
+    <div class="dash-section">
+      <div class="section-title">Token Usage</div>
+      <div class="totals-grid" id="totals-grid"></div>
+      <div class="chart-card" id="chart-wrap" hidden>
+        <canvas id="usage-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent requests -->
+    <div class="dash-section">
+      <div class="section-header">
+        <div class="section-title" style="margin-bottom:0;">Recent Requests</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm danger" id="clear-usage-btn">✕ Clear history</button>
+          <button class="btn-sm" id="refresh-btn">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th><th>Provider</th><th>Model</th><th>Role</th>
+              <th style="text-align:right">In</th><th style="text-align:right">Out</th>
+              <th style="text-align:right">Latency</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="usage-body"></tbody>
+        </table>
+      </div>
+      <div id="clear-toast"></div>
+    </div>
+
+    <!-- Change password -->
+    <div class="dash-section">
+      <div class="section-title">Change Password</div>
+      <div class="pw-card">
+        <div class="pw-form">
+          <div class="field">
+            <label for="pw-cur">Current password</label>
+            <input id="pw-cur" type="password" placeholder="••••••••" />
+          </div>
+          <div class="field">
+            <label for="pw-new">New password</label>
+            <input id="pw-new" type="password" placeholder="min 6 characters" />
+          </div>
+          <div class="field">
+            <label for="pw-confirm">Confirm new password</label>
+            <input id="pw-confirm" type="password" placeholder="repeat new password" />
+          </div>
+          <button class="btn-change" id="pw-save-btn">Update</button>
+        </div>
+        <div id="pw-toast"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const $ = s => document.querySelector(s);
+  const loginEl = $("#login"), dashEl = $("#dash");
+  const headerRight = $("#header-right");
+  const pw = $("#pw"), loginBtn = $("#login-btn"), loginToast = $("#login-toast");
+  const providersGrid = $("#providers-grid");
+  const judgeSelect = $("#judge-select"), judgeSave = $("#judge-save"), judgeStatus = $("#judge-status");
+  const judgeToast = $("#judge-toast"), toggleToast = $("#toggle-toast");
+  const totalsGrid = $("#totals-grid"), chartWrap = $("#chart-wrap");
+  const usageBody = $("#usage-body");
+  const refreshBtn = $("#refresh-btn"), clearUsageBtn = $("#clear-usage-btn");
+  const pwCur = $("#pw-cur"), pwNew = $("#pw-new"), pwConfirm = $("#pw-confirm");
+  const pwSaveBtn = $("#pw-save-btn"), pwToast = $("#pw-toast");
+
+  const esc = s => (s ?? "").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmtTime = ts => new Date(ts * 1000).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+  function showToast(el, msg, ok = false) {
+    el.innerHTML = `<div class="toast${ok ? " ok" : ""}">${esc(msg)}</div>`;
+    setTimeout(() => el.innerHTML = "", 4000);
+  }
+
+  function showDash() {
+    loginEl.hidden = true; dashEl.hidden = false;
+    headerRight.innerHTML = `
+      <button class="btn-ghost" id="logout-btn">Sign out</button>
+      <a class="btn-ghost" href="/">← Back to app</a>`;
+    $("#logout-btn").addEventListener("click", logout);
+  }
+
+  function showLogin() {
+    loginEl.hidden = false; dashEl.hidden = true;
+    headerRight.innerHTML = `<a class="btn-ghost" href="/">← Back to app</a>`;
+    setTimeout(() => pw.focus(), 50);
+  }
+
+  async function fetchState() {
+    const r = await fetch("/api/admin/state", { credentials: "same-origin" });
+    if (r.status === 401) { showLogin(); return null; }
+    if (r.status === 503) {
+      loginEl.hidden = false;
+      loginEl.innerHTML = `<div class="notice"><h3>Admin disabled</h3>
+        <p>Set <code>ADMIN_PASSWORD</code> in your <code>.env.example</code> file and restart.</p></div>`;
+      return null;
+    }
+    if (!r.ok) { showToast(loginToast, "Couldn't load admin state."); return null; }
+    return r.json();
+  }
+
+  // ── Chart ──
+  let chartInst = null;
+  function renderChart(totals) {
+    const data = Object.values(totals || {});
+    if (!data.length) { chartWrap.hidden = true; return; }
+    chartWrap.hidden = false;
+    const labels = data.map(t => t.label);
+    const inTok  = data.map(t => t.input_tokens);
+    const outTok = data.map(t => t.output_tokens);
+    const calls  = data.map(t => t.calls);
+
+    if (chartInst) chartInst.destroy();
+    chartInst = new Chart($("#usage-chart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Input tokens",
+            data: inTok,
+            backgroundColor: "rgba(99,102,241,.7)",
+            borderColor: "rgba(99,102,241,1)",
+            borderWidth: 1,
+            borderRadius: 4,
+          },
+          {
+            label: "Output tokens",
+            data: outTok,
+            backgroundColor: "rgba(34,211,238,.6)",
+            borderColor: "rgba(34,211,238,1)",
+            borderWidth: 1,
+            borderRadius: 4,
+          },
+          {
+            label: "Calls",
+            data: calls,
+            backgroundColor: "rgba(16,185,129,.5)",
+            borderColor: "rgba(16,185,129,1)",
+            borderWidth: 1,
+            borderRadius: 4,
+            yAxisID: "y2",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { labels: { color: "#94a3c4", font: { size: 12 } } },
+          tooltip: { backgroundColor: "#0f1117", borderColor: "#1e2740", borderWidth: 1 },
+        },
+        scales: {
+          x: { ticks: { color: "#5a6b8a" }, grid: { color: "rgba(30,39,64,.6)" } },
+          y: {
+            ticks: { color: "#5a6b8a" }, grid: { color: "rgba(30,39,64,.6)" },
+            title: { display: true, text: "Tokens", color: "#5a6b8a", font: { size: 11 } },
+          },
+          y2: {
+            position: "right", ticks: { color: "#5a6b8a" }, grid: { drawOnChartArea: false },
+            title: { display: true, text: "Calls", color: "#5a6b8a", font: { size: 11 } },
+          },
+        },
+      },
+    });
+  }
+
+  // ── Render ──
+  function render(state) {
+    // Providers
+    providersGrid.innerHTML = state.providers.map(p => `
+      <div class="prov-card">
+        <div class="prov-header">
+          <span class="prov-name">${esc(p.label)}</span>
+          <div class="prov-header-right">
+            <span class="status-dot ${p.available ? "ok" : "off"}">${p.available ? "● Active" : "● No key"}</span>
+            <div class="toggle-wrap">
+              <label class="toggle" title="${p.enabled ? "Disable" : "Enable"} ${esc(p.label)}">
+                <input type="checkbox" class="prov-toggle" data-name="${esc(p.name)}"
+                  ${p.enabled ? "checked" : ""} ${!p.available ? "disabled" : ""}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="prov-row"><span class="prov-label">Provider ID</span><span class="prov-val">${esc(p.name)}</span></div>
+        <div class="prov-row"><span class="prov-label">Model</span><span class="prov-val">${esc(p.model)}</span></div>
+        <div class="prov-row"><span class="prov-label">API key</span><span class="prov-val">${esc(p.api_key_masked || "—")}</span></div>
+      </div>`).join("");
+
+    // Wire toggle switches
+    document.querySelectorAll(".prov-toggle").forEach(chk => {
+      chk.addEventListener("change", async () => {
+        const name = chk.dataset.name, enabled = chk.checked;
+        chk.disabled = true;
+        try {
+          const r = await fetch("/api/admin/provider-toggle", {
+            method: "POST", credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, enabled }),
+          });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) { showToast(toggleToast, d.detail || "Toggle failed."); chk.checked = !enabled; return; }
+          showToast(toggleToast, `${name} ${enabled ? "enabled" : "disabled"}.`, true);
+        } catch(e) { showToast(toggleToast, String(e)); chk.checked = !enabled; }
+        finally { chk.disabled = false; }
+      });
+    });
+
+    // Judge
+    const cur = state.judge.current || "";
+    judgeSelect.innerHTML = [
+      `<option value="">Auto (from env)</option>`,
+      ...state.judge.available.map(n =>
+        `<option value="${esc(n)}" ${n === cur ? "selected" : ""}>${esc(n)}</option>`)
+    ].join("");
+    judgeStatus.textContent = cur ? `Override: ${cur}` : "Using JUDGE_PROVIDER from env";
+
+    // Totals
+    const totals = Object.values(state.usage.totals || {});
+    totalsGrid.innerHTML = totals.length
+      ? totals.map(t => `
+          <div class="total-card">
+            <div class="total-name">${esc(t.label)}</div>
+            <div class="total-stats">
+              <div class="stat"><span class="stat-val">${t.calls}</span><span class="stat-lbl">Calls</span></div>
+              <div class="stat"><span class="stat-val">${t.input_tokens.toLocaleString()}</span><span class="stat-lbl">In tokens</span></div>
+              <div class="stat"><span class="stat-val">${t.output_tokens.toLocaleString()}</span><span class="stat-lbl">Out tokens</span></div>
+              ${t.errors ? `<div class="stat"><span class="stat-val err-val">${t.errors}</span><span class="stat-lbl">Errors</span></div>` : ""}
+            </div>
+          </div>`).join("")
+      : `<div style="color:var(--text-3);font-size:13px;padding:8px 0;">No usage yet — ask a question on the main page.</div>`;
+
+    renderChart(state.usage.totals);
+
+    // Usage table
+    const rows = state.usage.recent || [];
+    usageBody.innerHTML = rows.length
+      ? rows.map(r => `
+          <tr>
+            <td class="mono">${esc(fmtTime(r.timestamp))}</td>
+            <td><strong>${esc(r.label)}</strong></td>
+            <td class="mono">${esc(r.model)}</td>
+            <td><span class="pill ${r.role === "judge" ? "pill-judge" : "pill-ask"}">${esc(r.role)}</span></td>
+            <td style="text-align:right" class="mono">${r.input_tokens}</td>
+            <td style="text-align:right" class="mono">${r.output_tokens}</td>
+            <td style="text-align:right" class="mono">${r.latency_ms} ms</td>
+            <td>${r.error
+              ? `<span class="pill pill-err" title="${esc(r.error)}">error</span>`
+              : `<span class="pill pill-ok">ok</span>`}</td>
+          </tr>`).join("")
+      : `<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:28px;">No requests logged yet.</td></tr>`;
+  }
+
+  async function refresh() {
+    const state = await fetchState();
+    if (state) { showDash(); render(state); }
+  }
+
+  async function login() {
+    if (!pw.value) { pw.focus(); return; }
+    loginBtn.disabled = true;
+    try {
+      const r = await fetch("/api/admin/login", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw.value }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { showToast(loginToast, d.detail || "Login failed."); return; }
+      pw.value = "";
+      await refresh();
+    } catch(e) { showToast(loginToast, String(e)); }
+    finally { loginBtn.disabled = false; }
+  }
+
+  async function logout() {
+    try { await fetch("/api/admin/logout", { method: "POST", credentials: "same-origin" }); } catch {}
+    showLogin();
+  }
+
+  async function saveJudge() {
+    judgeSave.disabled = true;
+    try {
+      const r = await fetch("/api/admin/judge", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: judgeSelect.value }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { showToast(judgeToast, d.detail || "Save failed."); return; }
+      showToast(judgeToast, "Judge updated.", true);
+      await refresh();
+    } catch(e) { showToast(judgeToast, String(e)); }
+    finally { judgeSave.disabled = false; }
+  }
+
+  async function clearUsage() {
+    if (!confirm("Clear all usage history? This cannot be undone.")) return;
+    clearUsageBtn.disabled = true;
+    try {
+      const r = await fetch("/api/admin/clear-usage", { method: "POST", credentials: "same-origin" });
+      if (!r.ok) { showToast($("#clear-toast"), "Clear failed."); return; }
+      showToast($("#clear-toast"), "Usage history cleared.", true);
+      await refresh();
+    } catch(e) { showToast($("#clear-toast"), String(e)); }
+    finally { clearUsageBtn.disabled = false; }
+  }
+
+  async function changePassword() {
+    const cur = pwCur.value, nw = pwNew.value, conf = pwConfirm.value;
+    if (!cur || !nw || !conf) { showToast(pwToast, "All fields are required."); return; }
+    if (nw !== conf) { showToast(pwToast, "New passwords do not match."); return; }
+    if (nw.length < 6) { showToast(pwToast, "New password must be at least 6 characters."); return; }
+    pwSaveBtn.disabled = true;
+    try {
+      const r = await fetch("/api/admin/change-password", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current_password: cur, new_password: nw }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { showToast(pwToast, d.detail || "Update failed."); return; }
+      showToast(pwToast, "Password updated. Note: resets on server restart.", true);
+      pwCur.value = ""; pwNew.value = ""; pwConfirm.value = "";
+    } catch(e) { showToast(pwToast, String(e)); }
+    finally { pwSaveBtn.disabled = false; }
+  }
+
+  loginBtn.addEventListener("click", login);
+  pw.addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+  judgeSave.addEventListener("click", saveJudge);
+  refreshBtn.addEventListener("click", refresh);
+  clearUsageBtn.addEventListener("click", clearUsage);
+  pwSaveBtn.addEventListener("click", changePassword);
+
+  refresh();
+</script>
+</body>
+</html>
