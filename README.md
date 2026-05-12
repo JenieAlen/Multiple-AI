@@ -1,7 +1,6 @@
 # Multiple AI
 
-Ask one question, get answers from **Groq**, **Together AI**, and **Gemini**
-in parallel — then have Gemini judge the answers and pick the best one.
+Ask one question, get answers from **Groq** and **Ollama** in parallel — then have **Gemini** judge the answers and pick the best one.
 
 ```
             ┌─────────────────────────────┐
@@ -11,11 +10,13 @@ question ─► │   ├─ /api/ask  (fan-out)    │ ─► single best answe
             │   └─ judge.py               │
             └──────────┬──────────────────┘
                        │ parallel async calls
-        ┌──────────────┼──────────────┐
-        ▼              ▼              ▼
-       Groq         Together         Google
-     (Llama)        (Llama)         (Gemini)
-                                    ↑ also the judge
+              ┌────────┴────────┐
+              ▼                 ▼
+            Groq             Ollama
+           (Llama)          (local LLM)
+                     ▲
+                  Google Gemini
+                  (judge only)
 ```
 
 ## Project layout
@@ -25,8 +26,8 @@ Multiple AI/
 ├── backend/
 │   ├── __init__.py
 │   ├── main.py        # FastAPI app, routes, schemas
-│   ├── providers.py   # Async clients for Groq / Together / Google
-│   ├── judge.py       # Gemini picks the best answer
+│   ├── providers.py   # Async clients for Groq / Ollama / Google
+│   ├── judge.py       # Gemini scores and picks the best answer
 │   └── admin.py       # In-memory admin state + usage log
 ├── frontend/
 │   ├── index.html     # Single-page UI (no build step)
@@ -45,74 +46,84 @@ pip install -r requirements.txt
 
 # 2. Configure API keys
 cp .env.example .env
-# Edit .env and fill in at least one of:
+# Edit .env and fill in:
 #   GROQ_API_KEY=...
-#   TOGETHER_API_KEY=...
 #   GOOGLE_API_KEY=...
 
-# 3. Run
+# 3. (Optional) Run Ollama locally
+#    Install from https://ollama.com, then:
+ollama serve
+ollama pull llama3.2
+
+# 4. Run
 python run.py
 ```
 
 Then open **http://127.0.0.1:8000**.
 
-You don't need keys for all three providers — any combination works. Providers
-without a key are silently skipped, and if only one provider answers it's
-automatically chosen as the best.
+Ollama is optional — if it's not running it's silently skipped. Groq and Gemini only need their API keys.
 
 ### Where to get the keys
 
 - **Groq** — https://console.groq.com (free tier, generous rate limits)
-- **Together AI** — https://api.together.ai (free credits on signup)
 - **Google Gemini** — https://aistudio.google.com/app/apikey (free tier)
+- **Ollama** — https://ollama.com (free, runs locally, no key needed)
 
 ## How "best answer" is picked
 
-After all providers respond, the app sends every candidate answer to the
-judge (configured by `JUDGE_PROVIDER`, default `google` / Gemini) with a
-strict JSON-only prompt asking it to:
+After both providers respond, Gemini reads all answers and:
 
-1. Pick the strongest answer (`winner`)
-2. Explain the choice in 1–2 sentences (`rationale`)
-3. Optionally produce an improved, synthesized version (`synthesized`)
+1. Scores each answer 1–10 across 5 dimensions (accuracy, completeness, clarity, conciseness, helpfulness)
+2. Picks the strongest answer (`winner`)
+3. Explains the choice in 2–3 sentences (`rationale`)
+4. Produces an improved, synthesized version combining the best parts (`synthesized`)
 
-If JSON parsing fails or the judge errors out, the app falls back to the
-longest non-error answer.
+If JSON parsing fails or the judge errors out, the app falls back to the longest non-error answer.
 
 ## Admin page
 
 Visit **http://127.0.0.1:8000/admin** to:
 
-- See which providers are configured and which model each is using
+- See which providers are active and toggle them on/off
 - Switch the judge provider live without editing `.env`
-- View token-usage totals per provider and a log of the most recent requests
+- View token-usage totals and charts per provider
+- See a log of recent requests with latency and token counts
+- Change the admin password from the UI
+- Clear usage history
 
-Admin is gated by `ADMIN_PASSWORD` in `.env`. Leave it blank to disable the
-admin page entirely. All admin state lives in memory and resets when the
-server restarts.
+Admin is gated by `ADMIN_PASSWORD` in `.env`. Leave it blank to disable admin entirely.
 
 ## API
 
-| Method | Route                | Description                                  |
-| ------ | -------------------- | -------------------------------------------- |
-| GET    | `/`                  | Single-page UI                               |
-| GET    | `/admin`             | Admin dashboard                              |
-| GET    | `/api/health`        | Lists configured providers                   |
-| POST   | `/api/ask`           | `{ "question": "..." }` → all answers + best |
-| POST   | `/api/admin/login`   | Body: `{ "password": "..." }`                |
-| POST   | `/api/admin/logout`  | Clears admin cookie                          |
-| GET    | `/api/admin/state`   | Providers, current judge, usage log          |
-| POST   | `/api/admin/judge`   | Body: `{ "provider": "google" }`             |
+| Method | Route                          | Description                                  |
+| ------ | ------------------------------ | -------------------------------------------- |
+| GET    | `/`                            | Single-page UI                               |
+| GET    | `/admin`                       | Admin dashboard                              |
+| GET    | `/api/health`                  | Lists configured providers                   |
+| POST   | `/api/ask`                     | `{ "question": "..." }` → all answers + best |
+| POST   | `/api/admin/login`             | Body: `{ "password": "..." }`                |
+| POST   | `/api/admin/logout`            | Clears admin cookie                          |
+| GET    | `/api/admin/state`             | Providers, judge, usage log                  |
+| POST   | `/api/admin/judge`             | Body: `{ "provider": "google" }`             |
+| POST   | `/api/admin/provider-toggle`   | Body: `{ "name": "groq", "enabled": false }` |
+| POST   | `/api/admin/clear-usage`       | Clears in-memory usage log                   |
+| POST   | `/api/admin/change-password`   | Body: `{ "current_password", "new_password"}`|
 
-Auto-generated API docs are available at `/docs`.
+Auto-generated API docs at `/docs`.
 
-## Switching models
-
-Edit `.env`:
+## Environment variables
 
 ```
+GROQ_API_KEY=...
+GOOGLE_API_KEY=...
+
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+
 GROQ_MODEL=llama-3.3-70b-versatile
-TOGETHER_MODEL=meta-llama/Llama-3.3-70B-Instruct-Turbo
-GOOGLE_MODEL=gemini-1.5-flash
+GOOGLE_MODEL=gemini-2.5-flash
+
 JUDGE_PROVIDER=google
+
+ADMIN_PASSWORD=your_password_here
 ```
