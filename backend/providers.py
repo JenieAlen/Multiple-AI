@@ -242,7 +242,7 @@ class GoogleProvider:
 def build_providers() -> list:
     """Return providers that are available and not manually disabled."""
     disabled = _admin.state.get_disabled_providers()
-    candidates = [GroqProvider(), OllamaProvider(), GoogleProvider()]
+    candidates = [GroqProvider(), OllamaProvider()]
     return [p for p in candidates if p.is_available() and p.name not in disabled]
 
 
