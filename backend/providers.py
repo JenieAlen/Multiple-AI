@@ -168,7 +168,7 @@ class FireworksProvider(_OpenAICompatProvider):
     base_url = "https://api.fireworks.ai/inference/v1"
     env_key = "FIREWORKS_API_KEY"
     env_model = "FIREWORKS_MODEL"
-    default_model = "accounts/fireworks/models/llama-v3p3-70b-instruct"
+    default_model = "accounts/fireworks/models/llama-v3p1-70b-instruct"
 
 
 # ---- Google (Gemini) ------------------------------------------------------
