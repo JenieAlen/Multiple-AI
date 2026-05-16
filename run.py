@@ -3,7 +3,7 @@ Convenience launcher. Run:
 
     python run.py
 
-Then open http://127.0.0.1:8000 in your browser.
+Then open http://0.0.0.0:8000 in your browser.
 """
 
 import os
