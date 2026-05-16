@@ -20,12 +20,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 # Load .env BEFORE importing modules that read os.getenv at import time.
-# Try multiple locations so it works however uvicorn is invoked.
+# Only load .env (real secrets) — never .env.example (placeholders).
+# On Render, .env won't exist and env vars come from the dashboard instead.
 _ROOT = Path(__file__).resolve().parent.parent
-for _env_path in [_ROOT / ".env.example", Path(".env.example"), Path(".env")]:
-    if _env_path.exists():
-        load_dotenv(dotenv_path=_env_path, override=True)
-        break
+load_dotenv(dotenv_path=_ROOT / ".env")
 
 from . import admin as admin_state  # noqa: E402
 from .judge import judge  # noqa: E402
