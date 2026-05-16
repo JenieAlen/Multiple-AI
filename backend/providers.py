@@ -6,9 +6,9 @@ coroutine and an `is_available()` helper. Missing API keys make the provider
 gracefully unavailable rather than crashing the app.
 
 Providers:
-  * GroqProvider    — Llama models via Groq (OpenAI-compatible API)
-  * OllamaProvider  — local models via Ollama (OpenAI-compatible API)
-  * GoogleProvider  — Gemini (also the default judge)
+  * GroqProvider      — Llama models via Groq (OpenAI-compatible API)
+  * FireworksProvider — Open-source models via Fireworks AI (OpenAI-compatible)
+  * GoogleProvider    — Gemini (also the default judge)
 """
 
 from __future__ import annotations
@@ -161,22 +161,14 @@ class GroqProvider(_OpenAICompatProvider):
     default_model = "llama-3.3-70b-versatile"
 
 
-# ---- Ollama (local) -------------------------------------------------------
-class OllamaProvider(_OpenAICompatProvider):
-    name = "ollama"
-    label = "Ollama"
-    env_key = ""          # not used — Ollama needs no API key
-    env_model = "OLLAMA_MODEL"
-    default_model = "llama3.2"
-
-    def __init__(self) -> None:
-        host = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
-        self.base_url = f"{host}/v1"
-        self.api_key = "ollama"   # Ollama accepts any non-empty string
-        self.model = os.getenv("OLLAMA_MODEL", self.default_model).strip()
-        self._client = None
-        if AsyncOpenAI is not None:
-            self._client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+# ---- Fireworks AI ---------------------------------------------------------
+class FireworksProvider(_OpenAICompatProvider):
+    name = "fireworks"
+    label = "Fireworks"
+    base_url = "https://api.fireworks.ai/inference/v1"
+    env_key = "FIREWORKS_API_KEY"
+    env_model = "FIREWORKS_MODEL"
+    default_model = "accounts/fireworks/models/llama-v3p3-70b-instruct"
 
 
 # ---- Google (Gemini) ------------------------------------------------------
@@ -242,7 +234,7 @@ class GoogleProvider:
 def build_providers() -> list:
     """Return providers that are available and not manually disabled."""
     disabled = _admin.state.get_disabled_providers()
-    candidates = [GroqProvider(), OllamaProvider(), GoogleProvider()]
+    candidates = [GroqProvider(), FireworksProvider(), GoogleProvider()]
     return [p for p in candidates if p.is_available() and p.name not in disabled]
 
 

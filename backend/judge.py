@@ -16,9 +16,9 @@ from typing import Optional
 
 from . import admin as _admin
 from .providers import (
+    FireworksProvider,
     GoogleProvider,
     GroqProvider,
-    OllamaProvider,
     ProviderAnswer,
 )
 
@@ -152,7 +152,7 @@ async def judge(question: str, answers: list[ProviderAnswer]) -> JudgeVerdict:
     judge_name = (override or os.getenv("JUDGE_PROVIDER", "google")).strip().lower()
     provider_map = {
         "groq": GroqProvider,
-        "ollama": OllamaProvider,
+        "fireworks": FireworksProvider,
         "google": GoogleProvider,
     }
     cls = provider_map.get(judge_name, GoogleProvider)

@@ -328,7 +328,7 @@
 
   <div class="ask-card">
     <h1>Ask every model. Keep the best.</h1>
-    <p>Your question goes to Groq and Ollama simultaneously. Gemini judges and picks the strongest answer.</p>
+    <p>Your question goes to Groq and Fireworks simultaneously. Gemini judges and picks the strongest answer.</p>
     <div class="input-row">
       <textarea id="q" placeholder="e.g. Explain quantum entanglement in simple terms…"></textarea>
       <button class="btn-ask" id="ask-btn">Ask</button>
@@ -457,7 +457,7 @@
     if (on) {
       const names = knownProviders.length
         ? knownProviders
-        : [{ label: "Groq" }, { label: "Ollama" }, { label: "Gemini" }];
+        : [{ label: "Groq" }, { label: "Fireworks" }, { label: "Gemini" }];
       results.innerHTML = `<div class="loading-providers">` +
         names.map(p => `
           <div class="loading-provider-card">
