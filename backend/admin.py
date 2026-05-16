@@ -13,6 +13,8 @@ settings/usage; nothing persists to disk.
 
 from __future__ import annotations
 
+import hmac
+import hashlib
 import os
 import secrets
 import threading
@@ -153,16 +155,29 @@ state = _AdminState()
 
 
 def check_password(submitted: str) -> bool:
-    """Constant-time compare against ADMIN_PASSWORD env var."""
-    expected = os.getenv("ADMIN_PASSWORD", "").strip()
-    if not expected:
-        # If no password is set, admin is disabled entirely.
+    """
+    Verify submitted password using HMAC-SHA256.
+    ADMIN_KEY   — secret key, stored externally (Doppler/outside Render region).
+    ADMIN_PASSWORD_HASH — HMAC hash of the real password, stored in Render.
+    Both must be present; the hash alone is useless without the key.
+    """
+    admin_key = os.getenv("ADMIN_KEY", "").strip()
+    stored_hash = os.getenv("ADMIN_PASSWORD_HASH", "").strip()
+    if not admin_key or not stored_hash:
         return False
-    return secrets.compare_digest(submitted or "", expected)
+    expected = hmac.new(
+        admin_key.encode("utf-8"),
+        (submitted or "").encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected, stored_hash)
 
 
 def admin_enabled() -> bool:
-    return bool(os.getenv("ADMIN_PASSWORD", "").strip())
+    return bool(
+        os.getenv("ADMIN_KEY", "").strip()
+        and os.getenv("ADMIN_PASSWORD_HASH", "").strip()
+    )
 
 
 def record_usage(
