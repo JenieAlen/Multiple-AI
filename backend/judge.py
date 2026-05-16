@@ -158,13 +158,26 @@ async def judge(question: str, answers: list[ProviderAnswer]) -> JudgeVerdict:
     cls = provider_map.get(judge_name, GoogleProvider)
     judge_provider = cls()
 
-    if not judge_provider.is_available():
-        for alt_cls in provider_map.values():
+    answering_names = {a.provider for a in valid}
+
+    if not judge_provider.is_available() or judge_name in answering_names:
+        # Prefer a judge that isn't also answering (avoids self-scoring bias).
+        for alt_name, alt_cls in provider_map.items():
+            if alt_name == judge_name:
+                continue
             j = alt_cls()
             if j.is_available():
                 judge_provider = j
-                judge_name = j.name
+                judge_name = alt_name
                 break
+        # If no alternative found, fall back to original judge (accepts bias).
+        if not judge_provider.is_available():
+            for alt_cls in provider_map.values():
+                j = alt_cls()
+                if j.is_available():
+                    judge_provider = j
+                    judge_name = j.name
+                    break
 
     if not judge_provider.is_available():
         return _fallback_verdict(answers, "no judge provider available")
