@@ -266,7 +266,7 @@
     <div style="position:relative;display:flex;align-items:center;">
       <input id="pw" type="password" placeholder="••••••••" autocomplete="current-password" style="flex:1;padding-right:40px;" />
       <button type="button" id="pw-toggle" title="Show/hide password"
-        style="position:absolute;right:10px;background:none;border:none;cursor:pointer;color:var(--text-3);font-size:16px;padding:0;line-height:1;">👁</button>
+        style="position:absolute;right:10px;background:none;border:none;cursor:pointer;color:var(--text-3);font-size:12px;font-weight:600;padding:0;line-height:1;letter-spacing:0.05em;">Show</button>
     </div>
     <button class="btn-primary" id="login-btn">Sign in</button>
     <div id="login-toast"></div>
@@ -634,7 +634,7 @@
   $("#pw-toggle").addEventListener("click", () => {
     const show = pw.type === "password";
     pw.type = show ? "text" : "password";
-    $("#pw-toggle").textContent = show ? "🙈" : "👁";
+    $("#pw-toggle").textContent = show ? "Hide" : "Show";
   });
   judgeSave.addEventListener("click", saveJudge);
   refreshBtn.addEventListener("click", refresh);
