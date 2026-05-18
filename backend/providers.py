@@ -6,9 +6,9 @@ coroutine and an `is_available()` helper. Missing API keys make the provider
 gracefully unavailable rather than crashing the app.
 
 Providers:
-  * GroqProvider      — Llama models via Groq (OpenAI-compatible API)
-  * FireworksProvider — Open-source models via Fireworks AI (OpenAI-compatible)
-  * GoogleProvider    — Gemini (also the default judge)
+  * GroqProvider        — Llama models via Groq (OpenAI-compatible API)
+  * OpenRouterProvider  — Free/cheap models via OpenRouter (OpenAI-compatible)
+  * GoogleProvider      — Gemini (judge only, not in build_providers)
 """
 
 from __future__ import annotations
@@ -161,14 +161,14 @@ class GroqProvider(_OpenAICompatProvider):
     default_model = "llama-3.3-70b-versatile"
 
 
-# ---- Fireworks AI ---------------------------------------------------------
-class FireworksProvider(_OpenAICompatProvider):
-    name = "fireworks"
-    label = "Fireworks"
-    base_url = "https://api.fireworks.ai/inference/v1"
-    env_key = "FIREWORKS_API_KEY"
-    env_model = "FIREWORKS_MODEL"
-    default_model = "accounts/fireworks/models/llama-v3p1-8b-instruct"
+# ---- OpenRouter -----------------------------------------------------------
+class OpenRouterProvider(_OpenAICompatProvider):
+    name = "openrouter"
+    label = "OpenRouter"
+    base_url = "https://openrouter.ai/api/v1"
+    env_key = "OPENROUTER_API_KEY"
+    env_model = "OPENROUTER_MODEL"
+    default_model = "meta-llama/llama-3.1-8b-instruct:free"
 
 
 # ---- Google (Gemini) ------------------------------------------------------
@@ -234,7 +234,7 @@ class GoogleProvider:
 def build_providers() -> list:
     """Return providers that are available and not manually disabled."""
     disabled = _admin.state.get_disabled_providers()
-    candidates = [GroqProvider(), FireworksProvider(), GoogleProvider()]
+    candidates = [GroqProvider(), OpenRouterProvider()]
     return [p for p in candidates if p.is_available() and p.name not in disabled]
 
 

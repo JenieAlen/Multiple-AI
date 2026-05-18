@@ -28,9 +28,9 @@ load_dotenv(dotenv_path=_ROOT / ".env")
 from . import admin as admin_state  # noqa: E402
 from .judge import judge  # noqa: E402
 from .providers import (  # noqa: E402
-    FireworksProvider,
     GoogleProvider,
     GroqProvider,
+    OpenRouterProvider,
     ask_all,
     build_providers,
 )
@@ -161,7 +161,7 @@ ADMIN_COOKIE = "ai_admin_session"
 
 # All known provider classes, keyed by their `name`. Used by admin endpoints
 # so we can describe providers even when they're not currently available.
-_ALL_PROVIDER_CLASSES = (GroqProvider, FireworksProvider, GoogleProvider)
+_ALL_PROVIDER_CLASSES = (GroqProvider, OpenRouterProvider, GoogleProvider)
 
 
 def _mask_key(key: str) -> str:
