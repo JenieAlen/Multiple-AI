@@ -168,7 +168,7 @@ class OpenRouterProvider(_OpenAICompatProvider):
     base_url = "https://openrouter.ai/api/v1"
     env_key = "OPENROUTER_API_KEY"
     env_model = "OPENROUTER_MODEL"
-    default_model = "mistralai/mistral-7b-instruct:free"
+    default_model = "meta-llama/llama-3.3-70b-instruct:free"
 
 
 # ---- Google (Gemini) ------------------------------------------------------
